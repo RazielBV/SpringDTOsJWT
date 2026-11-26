@@ -1,76 +1,73 @@
 package com.example.demo.controllers;
+
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.demo.dto.CategoriaRequest;
+import com.example.demo.dto.CategoriaResponse;
 import com.example.demo.model.Department;
-import com.example.demo.model.Producto;
-import com.example.demo.repo.categoriaRepo;
-import com.example.demo.repo.productoRepo;
+import com.example.demo.service.CategoriaService;
+
+import jakarta.validation.Valid;
 
 @RestController
+@RequestMapping("/categorias")
 public class CategoriaController {
 
-@Autowired
-categoriaRepo repo;
-@Autowired
-productoRepo repoProducto;
-@GetMapping("categorias")
-  public List<Department> findAllcategoria() {
-    return this.repo.findAll();
-  }
+    private final CategoriaService service;
 
-@PostMapping("categoria")
-  public Department addcategoria(@RequestBody Department categoria) {
-
-    return repo.save(categoria);
-  }
-  @PostMapping("addProductoCategoria/{productId}/{categoriaId}")
-  public Department addcategoria(@PathVariable String productId ,@PathVariable String categoriaId) {
-    Optional<Producto> p = repoProducto.findById(productId);
-    Optional<Department> d = repo.findById(categoriaId);
-    if(d.isPresent())
-    if(p.isPresent()){
-        
-        d.get().getProductos().add(p.get());
+    public CategoriaController(CategoriaService service) {
+        this.service = service;
     }
-    return repo.save(d.get());
 
-  }
-  @GetMapping("categoria/producto/{productId}")
-  public Set<Department>  getDepartmentsByProduct(@PathVariable String productId) {
-    Optional<Producto> p = repoProducto.findById(productId);
-    if(p.isPresent()){
-      return  p.get().getDeparments();
+    @GetMapping
+    public List<CategoriaResponse> findAll() {
+        return service.findAll();
     }
-    return null;
 
-  }
+    @GetMapping("/{id}")
+    public CategoriaResponse findById(@PathVariable String id) {
+        return service.findById(id);
+    }
 
-@GetMapping("categoria/{id}")
-public Optional<Department> getById(@PathVariable String id) {
-    return repo.findById(id);
-}
+    @PostMapping
+    public ResponseEntity<CategoriaResponse> create(@Valid @RequestBody CategoriaRequest request) {
+        CategoriaResponse created = service.create(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
 
+    @PutMapping("/{id}")
+    public CategoriaResponse update(@PathVariable String id, @Valid @RequestBody CategoriaRequest request) {
+        return service.update(id, request);
+    }
 
-@PutMapping("categoria/{id}")
-public Department putDepartment(@PathVariable String id, @RequestBody Department categoria) {
-    categoria.setId(id);
-    return repo.save(categoria);
-}
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable String id) {
+        service.delete(id);
+        return ResponseEntity.noContent().build();
+    }
 
-@DeleteMapping("categoria/{id}")
-public String deleteDeparment(@PathVariable String id) {
-    repo.deleteById(id);
-    return "{\"success\":true}";
-}
+    @PostMapping("/producto/{productId}/categoria/{categoriaId}")
+    public ResponseEntity<CategoriaResponse> addProductoToCategoria(
+            @PathVariable String productId,
+            @PathVariable String categoriaId) {
+        CategoriaResponse updated = service.addProductoToCategoria(productId, categoriaId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(updated);
+    }
+
+    @GetMapping("/producto/{productId}")
+    public Set<Department> getCategoriasByProducto(@PathVariable String productId) {
+        return service.getCategoriasByProducto(productId);
+    }
 }
